@@ -1,7 +1,7 @@
 from datetime import datetime
 from tkcalendar import DateEntry
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import mysql.connector
 from dotenv import load_dotenv
 import os
@@ -47,6 +47,8 @@ def delete_reservation():
     
     table.delete(selected_item)
 
+
+
 def date_change():
     selected_item = table.selection()[0]
     reservation_id = table.item(selected_item, 'values')[0]
@@ -64,6 +66,15 @@ def date_change():
 
     values = table.item(selected_item, 'values')
     table.item(selected_item, values=(reservation_id, values[1], values[2], new_date, values[4], values[5]))
+
+def disable_mondays(event):
+    global prev_date
+    selected_date = entry_date.get_date()
+    if selected_date.weekday() == 0:  # Monday == 0
+        messagebox.showerror("Invalid Date", "Ristorante 'Il Capo' is closed on Mondays. Please choose a date between Tuesday and Sunday.")
+        entry_date.set_date(prev_date)
+    else:
+        prev_date = selected_date
 
 def time_change():
     selected_item = table.selection()[0]
@@ -93,6 +104,17 @@ def adjust_columns(event):
         table.column(col, width=dynamic_column_width)
     table.column("Email", width=fixed_column_width)
 
+def on_row_select(event):
+    selected_item = table.selection()[0]
+    values = table.item(selected_item, 'values')
+    details = (f"Reservation number: {values[0]}\n"
+               f"Name: {values[1]}\n"
+               f"Total person: {values[2]}\n"
+               f"Day: {values[3]}\n"
+               f"Time: {values[4]}\n"
+               f"Email: {values[5]}")
+    lbl_details.config(text=details)
+
 
 window = tk.Tk()
 window.title("Reservation")
@@ -119,9 +141,9 @@ scrollbar.grid(row=0, column=1, sticky='ns')
 table_frame.grid_rowconfigure(0, weight=1)
 table_frame.grid_columnconfigure(0, weight=1)
 
-table.heading("Reservation Number", text="Reservation Number")
+table.heading("Reservation Number", text="Reservation number")
 table.heading("Name", text="Name")
-table.heading("Total Person", text="Total Person")
+table.heading("Total Person", text="Total person")
 table.heading("Day", text="Day")
 table.heading("Time", text="Time")
 table.heading("Email", text="Email")
@@ -130,19 +152,31 @@ reservations = total_reservations()
 for reservation in reservations:
     table.insert('', 'end', values=reservation)
 
+details_frame = ttk.Frame(window)
+details_frame.pack(pady=10)
+
+lbl_details = ttk.Label(details_frame, text="", justify=tk.LEFT)
+lbl_details.grid(row=0, column=0, sticky=tk.W)
+
 center_frame = ttk.Frame(window)
 center_frame.pack(pady=10)
 
 frame = ttk.Frame(center_frame)
 frame.pack()
 
+
+
 btn_supprimer = ttk.Button(frame, text="Delete", command=delete_reservation)
 btn_supprimer.grid(row=0, column=0, padx=5)
 
-entry_date = DateEntry(frame, date_pattern='yyyy-mm-dd')
+entry_date = DateEntry(frame, date_pattern='yyyy-mm-dd', showweeknumbers=False)
 entry_date.grid(row=0, column=1, padx=5)
 
-hours = [f"{h:02d}:00" for h in range(24)] + [f"{h:02d}:30" for h in range(24)]
+prev_date = entry_date.get_date()
+entry_date.bind("<<DateEntrySelected>>", disable_mondays)
+
+
+hours = [f"{h:02d}:{m:02d}" for h in range(12, 24) for m in (0, 30)]
 entry_time = ttk.Combobox(frame, values=hours, state="readonly")
 entry_time.grid(row=0, column=3, padx=5)
 
@@ -151,6 +185,11 @@ btn_change_date.grid(row=0, column=2, padx=5)
 
 btn_time_change = ttk.Button(frame, text="Change time", command=time_change)
 btn_time_change.grid(row=0, column=4, padx=5)
+
+
+
+table.bind("<<TreeviewSelect>>", on_row_select)
+
 
 window.bind("<Configure>", adjust_columns)
 
