@@ -2,6 +2,8 @@ from datetime import datetime
 from tkcalendar import DateEntry
 import tkinter as tk
 from tkinter import ttk, messagebox
+import customtkinter as ctk
+from CTkMessagebox import CTkMessagebox
 import mysql.connector
 from dotenv import load_dotenv
 import os
@@ -16,6 +18,8 @@ config = {
     'password': os.getenv('MYSQL_PASSWORD'),
     'database': os.getenv('MYSQL_DATABASE')
 }
+
+
 
 def total_reservations():
     conn = mysql.connector.connect(**config)
@@ -71,10 +75,40 @@ def disable_mondays(event):
     global prev_date
     selected_date = entry_date.get_date()
     if selected_date.weekday() == 0:  # Monday == 0
-        messagebox.showerror("Invalid Date", "Ristorante 'Il Capo' is closed on Mondays. Please choose a date between Tuesday and Sunday.")
+        show_custom_messagebox("Invalid Date", "Ristorante 'Il Capo' is closed on Mondays. Please choose a date between Tuesday and Sunday.")
         entry_date.set_date(prev_date)
     else:
         prev_date = selected_date
+
+def show_custom_messagebox(title, message):
+    custom_window = ctk.CTkToplevel()
+    custom_window.title(title)
+    
+    # Disable close, minimize, and maximize buttons
+    custom_window.overrideredirect(True)
+
+    screen_width = custom_window.winfo_screenwidth()
+    screen_height = custom_window.winfo_screenheight()
+
+    window_width = 300
+    window_height = 150
+
+    position_top = int(screen_height / 2 - window_height / 200)
+    position_right = int(screen_width / 3 - window_width / 2)
+
+    # Set position
+    custom_window.geometry(f'{window_width}x{window_height}+{position_right}+{position_top}')
+
+    lbl_message = ctk.CTkLabel(custom_window, text=message, wraplength=250, justify="center")
+    lbl_message.pack(expand=True, pady=20)
+
+    btn_ok = ctk.CTkButton(custom_window, text="OK", command=custom_window.destroy)
+    btn_ok.pack(pady=10)
+
+    custom_window.transient(window)  # Make the window modal
+    custom_window.grab_set()  # Capture all events for this window
+    window.wait_window(custom_window)
+
 
 def time_change():
     selected_item = table.selection()[0]
@@ -119,8 +153,8 @@ def on_row_select(event):
 window = tk.Tk()
 window.title("Reservation")
 window.geometry("1200x900")
-window.minsize(700, 400)
-
+window.minsize(1200, 900)
+window.maxsize(1200, 900)
 
 # Create a frame for the Treeview and scrollbar
 table_frame = ttk.Frame(window, width=800, height=200)
