@@ -73,12 +73,15 @@ def date_change():
 
 def disable_mondays(event):
     global prev_date
-    selected_date = entry_date.get_date()
-    if selected_date.weekday() == 0:  # Monday == 0
-        show_custom_messagebox("Invalid Date", "Ristorante 'Il Capo' is closed on Mondays. Please choose a date between Tuesday and Sunday.")
-        entry_date.set_date(prev_date)
-    else:
-        prev_date = selected_date
+    try:
+        selected_date = entry_date.get_date()
+        if selected_date.weekday() == 0:  # Monday == 0
+            show_custom_messagebox("Invalid Date", "Ristorante 'Il Capo' is closed on Mondays. Please choose a date between Tuesday and Sunday.")
+            entry_date.set_date(prev_date)
+        else:
+            prev_date = selected_date
+    except KeyError:
+        pass  # Handle the KeyError when 'popdown' is not found
 
 def show_custom_messagebox(title, message):
     custom_window = ctk.CTkToplevel()
