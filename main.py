@@ -19,8 +19,6 @@ config = {
     'database': os.getenv('MYSQL_DATABASE')
 }
 
-
-
 def total_reservations():
     conn = mysql.connector.connect(**config)
     cursor = conn.cursor()
@@ -36,7 +34,12 @@ def total_reservations():
     return results
 
 def delete_reservation():
-    selected_item = table.selection()[0]
+    selected_items = table.selection()
+    if not selected_items:
+        show_custom_messagebox("Error", "No reservation selected")
+        return
+    
+    selected_item = selected_items[0]
     reservation_id = table.item(selected_item, 'values')[0]
     
     conn = mysql.connector.connect(**config)
@@ -50,10 +53,12 @@ def delete_reservation():
     conn.close()
     
     table.delete(selected_item)
-
-
+    update_button_states()
 
 def date_change():
+    if not table.selection():
+        show_custom_messagebox("Error", "No reservation selected")
+        return
     selected_item = table.selection()[0]
     reservation_id = table.item(selected_item, 'values')[0]
     new_date = entry_date.get()
@@ -70,6 +75,7 @@ def date_change():
 
     values = table.item(selected_item, 'values')
     table.item(selected_item, values=(reservation_id, values[1], values[2], new_date, values[4], values[5]))
+    update_button_states()
 
 def disable_mondays(event):
     global prev_date
@@ -80,6 +86,7 @@ def disable_mondays(event):
             entry_date.set_date(prev_date)
         else:
             prev_date = selected_date
+        update_button_states()
     except KeyError:
         pass  # Handle the KeyError when 'popdown' is not found
 
@@ -112,11 +119,16 @@ def show_custom_messagebox(title, message):
     custom_window.grab_set()  # Capture all events for this window
     window.wait_window(custom_window)
 
-
 def time_change():
+    if not table.selection():
+        show_custom_messagebox("Error", "No reservation selected")
+        return
     selected_item = table.selection()[0]
     reservation_id = table.item(selected_item, 'values')[0]
     new_time = entry_time.get()
+
+    if len(new_time) == 5:
+        new_time += ":00"
     
     conn = mysql.connector.connect(**config)
     cursor = conn.cursor()
@@ -130,6 +142,7 @@ def time_change():
 
     values = table.item(selected_item, 'values')
     table.item(selected_item, values=(reservation_id, values[1], values[2], values[3], new_time, values[5]))
+    update_button_states()
 
 def adjust_columns(event):
     total_width = window.winfo_width()
@@ -142,16 +155,57 @@ def adjust_columns(event):
     table.column("Email", width=fixed_column_width)
 
 def on_row_select(event):
-    selected_item = table.selection()[0]
-    values = table.item(selected_item, 'values')
-    details = (f"Reservation number: {values[0]}\n"
-               f"Name: {values[1]}\n"
-               f"Total person: {values[2]}\n"
-               f"Day: {values[3]}\n"
-               f"Time: {values[4]}\n"
-               f"Email: {values[5]}")
-    lbl_details.config(text=details)
+    update_button_states()
+    selected_items = table.selection()
+    if selected_items:
+        selected_item = selected_items[0]
+        values = table.item(selected_item, 'values')
+        details = (f"Reservation number: {values[0]}\n"
+                   f"Name: {values[1]}\n"
+                   f"Total person: {values[2]}\n"
+                   f"Day: {values[3]}\n"
+                   f"Time: {values[4]}\n"
+                   f"Email: {values[5]}")
+        lbl_details.config(text=details)
+        
+        # Update DateEntry with the selected date 
+        selected_date = datetime.strptime(values[3], '%Y-%m-%d')
+        entry_date.set_date(selected_date)
 
+def update_button_states():
+    selected_items = table.selection()
+    if selected_items:
+        btn_delete.config(state=tk.NORMAL)
+        if entry_date.get_date():
+            btn_change_date.config(state=tk.NORMAL)
+        else:
+            btn_change_date.config(state=tk.DISABLED)
+        if entry_time.get():
+            btn_time_change.config(state=tk.NORMAL)
+        else:
+            btn_time_change.config(state=tk.DISABLED)
+
+        selected_item = selected_items[0]
+        values = table.item(selected_item, 'values')
+        details = (f"Reservation number: {values[0]}\n"
+                   f"Name: {values[1]}\n"
+                   f"Total person: {values[2]}\n"
+                   f"Day: {values[3]}\n"
+                   f"Time: {values[4]}\n"
+                   f"Email: {values[5]}")
+        lbl_details.config(text=details)
+    else:
+        btn_delete.config(state=tk.DISABLED)
+        btn_change_date.config(state=tk.DISABLED)
+        btn_time_change.config(state=tk.DISABLED)
+        lbl_details.config(text="")
+    
+def on_double_click(event):
+    selected_items = table.selection()
+    if selected_items:
+        selected_item = selected_items[0]
+        table.selection_remove(selected_item)
+        update_button_states()
 
 window = tk.Tk()
 window.title("Reservation")
@@ -201,33 +255,32 @@ center_frame.pack(pady=10)
 frame = ttk.Frame(center_frame)
 frame.pack()
 
-
-
-btn_supprimer = ttk.Button(frame, text="Delete", command=delete_reservation)
-btn_supprimer.grid(row=0, column=0, padx=5)
+btn_delete = ttk.Button(frame, text="Delete", command=delete_reservation)
+btn_delete.grid(row=0, column=0, padx=5)
+btn_delete.config(state=tk.DISABLED)
 
 entry_date = DateEntry(frame, date_pattern='yyyy-mm-dd', showweeknumbers=False)
 entry_date.grid(row=0, column=1, padx=5)
-
-prev_date = entry_date.get_date()
 entry_date.bind("<<DateEntrySelected>>", disable_mondays)
 
+prev_date = entry_date.get_date()
 
 hours = [f"{h:02d}:{m:02d}" for h in range(12, 24) for m in (0, 30)]
 entry_time = ttk.Combobox(frame, values=hours, state="readonly")
 entry_time.grid(row=0, column=3, padx=5)
+entry_time.bind("<<ComboboxSelected>>", lambda event: update_button_states())
 
 btn_change_date = ttk.Button(frame, text="Change date", command=date_change)
 btn_change_date.grid(row=0, column=2, padx=5)
+btn_change_date.config(state=tk.DISABLED)
 
 btn_time_change = ttk.Button(frame, text="Change time", command=time_change)
 btn_time_change.grid(row=0, column=4, padx=5)
-
-
+btn_time_change.config(state=tk.DISABLED)
 
 table.bind("<<TreeviewSelect>>", on_row_select)
 
-
+table.bind("<Double-1>", on_double_click)
 window.bind("<Configure>", adjust_columns)
 
 window.mainloop()
