@@ -102,8 +102,8 @@ def show_custom_messagebox(title, message):
 
     window_width = 300
     window_height = 150
-
-    position_top = int(screen_height / 2 - window_height / 200)
+       
+    position_top = int(screen_height / 2 - window_height / 2) + 150 
     position_right = int(screen_width / 3 - window_width / 2)
 
     # Set position
@@ -144,15 +144,6 @@ def time_change():
     table.item(selected_item, values=(reservation_id, values[1], values[2], values[3], new_time, values[5]))
     update_button_states()
 
-def adjust_columns(event):
-    total_width = window.winfo_width()
-    fixed_column_width = 200  
-    dynamic_columns = [col for col in table["columns"] if col != "Email"]
-    dynamic_column_width = (total_width - fixed_column_width) // len(dynamic_columns)
-
-    for col in dynamic_columns:
-        table.column(col, width=dynamic_column_width)
-    table.column("Email", width=fixed_column_width)
 
 def on_row_select(event):
     update_button_states()
@@ -167,7 +158,7 @@ def on_row_select(event):
                    f"Time: {values[4]}\n"
                    f"Email: {values[5]}")
         lbl_details.config(text=details)
-        
+
         # Update DateEntry with the selected date 
         selected_date = datetime.strptime(values[3], '%Y-%m-%d')
         entry_date.set_date(selected_date)
@@ -213,6 +204,12 @@ window.geometry("1200x900")
 window.minsize(1200, 900)
 window.maxsize(1200, 900)
 
+window.configure(bg='#f4f1e4')
+
+
+
+
+
 # Create a frame for the Treeview and scrollbar
 table_frame = ttk.Frame(window, width=800, height=200)
 table_frame.pack(side=tk.TOP, pady=50)
@@ -232,12 +229,20 @@ scrollbar.grid(row=0, column=1, sticky='ns')
 table_frame.grid_rowconfigure(0, weight=1)
 table_frame.grid_columnconfigure(0, weight=1)
 
-table.heading("Reservation Number", text="Reservation number")
+table.heading("Reservation Number", text="Reservation")
 table.heading("Name", text="Name")
 table.heading("Total Person", text="Total person")
 table.heading("Day", text="Day")
 table.heading("Time", text="Time")
 table.heading("Email", text="Email")
+
+table.column("Reservation Number", width=100, stretch=False)
+table.column("Name", width=100, stretch=False)
+table.column("Total Person", width=100, stretch=False)
+table.column("Day", width=100, stretch=False)
+table.column("Time", width=100, stretch=False)
+table.column("Email", width=200, stretch=False)
+
 
 reservations = total_reservations()
 for reservation in reservations:
@@ -245,6 +250,7 @@ for reservation in reservations:
 
 details_frame = ttk.Frame(window)
 details_frame.pack(pady=10)
+
 
 lbl_details = ttk.Label(details_frame, text="", justify=tk.LEFT)
 lbl_details.grid(row=0, column=0, sticky=tk.W)
@@ -256,31 +262,32 @@ frame = ttk.Frame(center_frame)
 frame.pack()
 
 btn_delete = ttk.Button(frame, text="Delete", command=delete_reservation)
-btn_delete.grid(row=0, column=0, padx=5)
+btn_delete.grid(row=2, column=1, padx=5)
 btn_delete.config(state=tk.DISABLED)
 
 entry_date = DateEntry(frame, date_pattern='yyyy-mm-dd', showweeknumbers=False)
-entry_date.grid(row=0, column=1, padx=5)
+entry_date.grid(row=0, column=0, padx=5)
 entry_date.bind("<<DateEntrySelected>>", disable_mondays)
 
 prev_date = entry_date.get_date()
 
 hours = [f"{h:02d}:{m:02d}" for h in range(12, 24) for m in (0, 30)]
 entry_time = ttk.Combobox(frame, values=hours, state="readonly")
-entry_time.grid(row=0, column=3, padx=5)
+entry_time.grid(row=1, column=0, padx=5)
 entry_time.bind("<<ComboboxSelected>>", lambda event: update_button_states())
 
 btn_change_date = ttk.Button(frame, text="Change date", command=date_change)
-btn_change_date.grid(row=0, column=2, padx=5)
+btn_change_date.grid(row=0, column=1, padx=5)
 btn_change_date.config(state=tk.DISABLED)
 
 btn_time_change = ttk.Button(frame, text="Change time", command=time_change)
-btn_time_change.grid(row=0, column=4, padx=5)
+btn_time_change.grid(row=1, column=1, padx=5)
 btn_time_change.config(state=tk.DISABLED)
 
 table.bind("<<TreeviewSelect>>", on_row_select)
 
 table.bind("<Double-1>", on_double_click)
-window.bind("<Configure>", adjust_columns)
+
+
 
 window.mainloop()
