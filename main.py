@@ -97,23 +97,28 @@ def show_custom_messagebox(title, message):
     # Disable close, minimize, and maximize buttons
     custom_window.overrideredirect(True)
 
-    screen_width = custom_window.winfo_screenwidth()
-    screen_height = custom_window.winfo_screenheight()
+    window.update_idletasks()
+    window_width = window.winfo_width()
+    window_height = window.winfo_height()
+    window_x = window.winfo_x()
+    window_y = window.winfo_y()
 
-    window_width = 300
-    window_height = 150
-       
-    position_top = int(screen_height / 2 - window_height / 2) + 150 
-    position_right = int(screen_width / 3 - window_width / 2)
+    messagebox_width = 300
+    messagebox_height = 150
+
+    position_right = window_x + (window_width // 2) - (messagebox_width // 2)
+    position_top = window_y + (window_height // 2) - (messagebox_height // 2) + 250
 
     # Set position
-    custom_window.geometry(f'{window_width}x{window_height}+{position_right}+{position_top}')
+    custom_window.geometry(f'{messagebox_width}x{messagebox_height}+{position_right}+{position_top}')
+
 
     lbl_message = ctk.CTkLabel(custom_window, text=message, wraplength=250, justify="center")
     lbl_message.pack(expand=True, pady=20)
 
     btn_ok = ctk.CTkButton(custom_window, text="OK", command=custom_window.destroy)
     btn_ok.pack(pady=10)
+    btn_ok.configure(fg_color="red")
 
     custom_window.transient(window)  # Make the window modal
     custom_window.grab_set()  # Capture all events for this window
@@ -200,9 +205,9 @@ def on_double_click(event):
 
 window = tk.Tk()
 window.title("Reservation")
-window.geometry("1200x900")
-window.minsize(1200, 900)
-window.maxsize(1200, 900)
+window.geometry("900x800")
+window.minsize(900, 800)
+window.maxsize(900, 800)
 
 window.configure(bg='#f4f1e4')
 
