@@ -7,6 +7,8 @@ from CTkMessagebox import CTkMessagebox
 import mysql.connector
 from dotenv import load_dotenv
 import os
+from PIL import Image, ImageTk
+import cairosvg
 
 load_dotenv()
 
@@ -87,8 +89,9 @@ def disable_mondays(event):
         else:
             prev_date = selected_date
         update_button_states()
+    # Handle the KeyError when 'popdown' is not found   
     except KeyError:
-        pass  # Handle the KeyError when 'popdown' is not found
+        pass  
 
 def show_custom_messagebox(title, message):
     custom_window = ctk.CTkToplevel()
@@ -120,8 +123,9 @@ def show_custom_messagebox(title, message):
     btn_ok.pack(pady=10)
     btn_ok.configure(fg_color="red")
 
-    custom_window.transient(window)  # Make the window modal
-    custom_window.grab_set()  # Capture all events for this window
+    # Make the window modal
+    custom_window.transient(window)  
+    custom_window.grab_set()  
     window.wait_window(custom_window)
 
 def time_change():
@@ -203,6 +207,20 @@ def on_double_click(event):
         table.selection_remove(selected_item)
         update_button_states()
 
+def prevent_resize(event):
+    for col in table["columns"]:
+        table.column(col, width=col_widths[col], stretch=False)
+
+# Define the initial column widths
+col_widths = {
+    "Reservation Number": 100,
+    "Name": 100,
+    "Total Person": 100,
+    "Day": 100,
+    "Time": 100,
+    "Email": 200
+}
+
 window = tk.Tk()
 window.title("Reservation")
 window.geometry("900x800")
@@ -210,9 +228,6 @@ window.minsize(900, 800)
 window.maxsize(900, 800)
 
 window.configure(bg='#f4f1e4')
-
-
-
 
 
 # Create a frame for the Treeview and scrollbar
@@ -241,32 +256,27 @@ table.heading("Day", text="Day")
 table.heading("Time", text="Time")
 table.heading("Email", text="Email")
 
-table.column("Reservation Number", width=100, stretch=False)
-table.column("Name", width=100, stretch=False)
-table.column("Total Person", width=100, stretch=False)
-table.column("Day", width=100, stretch=False)
-table.column("Time", width=100, stretch=False)
-table.column("Email", width=200, stretch=False)
+for col, width in col_widths.items():
+    table.column(col, width=width, stretch=False, anchor='center')
 
 
 reservations = total_reservations()
 for reservation in reservations:
     table.insert('', 'end', values=reservation)
 
-details_frame = ttk.Frame(window)
+details_frame = tk.Frame(window, bg='#f4f1e4')
 details_frame.pack(pady=10)
 
-
-lbl_details = ttk.Label(details_frame, text="", justify=tk.LEFT)
+lbl_details = tk.Label(details_frame, text="", justify=tk.LEFT,  bg='#f4f1e4')
 lbl_details.grid(row=0, column=0, sticky=tk.W)
 
-center_frame = ttk.Frame(window)
+center_frame = tk.Frame(window,  bg='#f4f1e4')
 center_frame.pack(pady=10)
 
-frame = ttk.Frame(center_frame)
+frame = tk.Frame(center_frame, bg='#f4f1e4')
 frame.pack()
 
-btn_delete = ttk.Button(frame, text="Delete", command=delete_reservation)
+btn_delete = tk.Button(frame, text="Delete", command=delete_reservation,  fg="red")
 btn_delete.grid(row=2, column=1, padx=5)
 btn_delete.config(state=tk.DISABLED)
 
@@ -281,18 +291,41 @@ entry_time = ttk.Combobox(frame, values=hours, state="readonly")
 entry_time.grid(row=1, column=0, padx=5)
 entry_time.bind("<<ComboboxSelected>>", lambda event: update_button_states())
 
-btn_change_date = ttk.Button(frame, text="Change date", command=date_change)
+btn_change_date = tk.Button(frame, text="Change date", command=date_change)
 btn_change_date.grid(row=0, column=1, padx=5)
 btn_change_date.config(state=tk.DISABLED)
 
-btn_time_change = ttk.Button(frame, text="Change time", command=time_change)
+btn_time_change = tk.Button(frame, text="Change time", command=time_change)
 btn_time_change.grid(row=1, column=1, padx=5)
 btn_time_change.config(state=tk.DISABLED)
 
 table.bind("<<TreeviewSelect>>", on_row_select)
 
+# Deselect data
 table.bind("<Double-1>", on_double_click)
 
+# Bind the resizing event to prevent resizing
+table.bind("<ButtonRelease-1>", prevent_resize)
+table.bind("<B1-Motion>", prevent_resize)
+
+# Add the logo at the bottom
+logo_frame = tk.Frame(window, bg='#f4f1e4')
+logo_frame.pack(side=tk.BOTTOM, pady=10)
+
+# Path to the SVG logo
+svg_path = "ressources/RistoranteIndex.svg"
+
+# Convert SVG to PNG and load the image
+png_path = "logo.png"
+cairosvg.svg2png(url=svg_path, write_to=png_path)
+logo_image = Image.open(png_path)
+logo_image = logo_image.resize((200, 200),Image.Resampling.LANCZOS)  
+logo_photo = ImageTk.PhotoImage(logo_image)
+
+# Create a label to display the image
+logo_label = tk.Label(logo_frame, image=logo_photo, bg='#f4f1e4')
+logo_label.image = logo_photo  
+logo_label.pack()
 
 
 window.mainloop()
