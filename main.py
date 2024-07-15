@@ -74,7 +74,7 @@ table_frame.grid_rowconfigure(0, weight=1)
 table_frame.grid_columnconfigure(0, weight=1)
 
 col_widths = {
-    "Reservation Number": 100,
+    "Reservation Number": 110,
     "Name": 100,
     "Total Person": 100,
     "Day": 100,
